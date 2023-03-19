@@ -1,6 +1,6 @@
 # torrent
 
-**This is the core component for the Reliable BitTorrent group project (UBC CPSC 416 2022W2). The validation repository can be found [here](https://github.com/Maxwell-Yang-2001/reliableBT-validation).**
+**This is the client component for the Reliable BitTorrent group project (UBC CPSC 416 2022W2). The tracker repository can be found [here](https://github.com/Maxwell-Yang-2001/reliableBT-tracker), and the validation repository can be found [here](https://github.com/Maxwell-Yang-2001/reliableBT-validation).**
 
 <hr>
 
