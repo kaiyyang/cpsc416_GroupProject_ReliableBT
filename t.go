@@ -1,14 +1,24 @@
 package torrent
 
 import (
+	"fmt"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/anacrolix/chansync/events"
 	"github.com/anacrolix/missinggo/v2/pubsub"
 	"github.com/anacrolix/sync"
 
+	"github.com/anacrolix/torrent/bencode"
 	"github.com/anacrolix/torrent/metainfo"
+)
+
+const (
+	downloadReqAddress = "http://127.0.0.1:1337/download"
+	// TODO: hard coded for now but change to tracker addr later(?)
 )
 
 // The Torrent's infohash. This is fixed and cannot change. It uniquely identifies a torrent.
@@ -240,7 +250,89 @@ func (t *Torrent) AddPeers(pp []PeerInfo) (n int) {
 // Marks the entire torrent for download. Requires the info first, see
 // GotInfo. Sets piece priorities for historical reasons.
 func (t *Torrent) DownloadAll() {
+	// TODO: update pinging
+	t.DoHttpSend(Count{0})
+	ticker := time.NewTicker(1 *time.Second)
+	done := make (chan bool)
+	go func() {
+		for {
+			select{
+			case <- done:
+				t.DoHttpSend(Count{0})
+				ticker.Stop()
+				return
+			case currTime := <- ticker.C:
+				// t.logger.Log(fmt.Sprintf("Tick at %s", currTime.String()))
+				fmt.Println("Tick at ", currTime)
+				if (t.checkDownloaded()) {
+					done <- true 
+				} else {
+					t.DoHttpSend(t.stats.BytesReadData);
+					// send to tracker to notify the download 
+				}
+			}
+		}
+	} ()
 	t.DownloadPieces(0, t.numPieces())
+	// make an extra request to set the connection to 0?? 
+}
+
+func (t *Torrent) checkDownloaded() bool {
+	return t.haveInfo() && t.haveAllPieces()
+}
+
+func (t *Torrent) DoHttpSend(numBytesRead Count) int64 {
+	req, err := http.NewRequest("GET", downloadReqAddress, nil)
+	if err != nil {
+		fmt.Println("Error during the creation of the new request")
+	}
+	req.Close = true
+	query := req.URL.Query()
+	fmt.Println("bytes downloading", numBytesRead.String())
+	query.Add("downloadbytes", numBytesRead.String())
+	query.Add("uploadbytes", "2000") // TODO: upload amount is hardcoded right now 
+	query.Add("infohash", t.InfoHash().AsString())
+	req.Header.Set("Accept-Encoding", "identity")
+	req.URL.RawQuery = query.Encode()
+
+	resp, err := t.cl.httpClient.Do(req)
+	if err != nil {
+		if strings.Contains(err.Error(), "connection refused") {
+			fmt.Println("HTTP tracker not running")
+		}
+		fmt.Println("HTTP request error:", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Println("Body read error:", err)
+	}
+
+	fmt.Println(string(body))
+
+	if len(body) == 0 {
+		fmt.Println("body empty")
+	}
+
+	var decoded map[string]interface{}
+	if err = bencode.Unmarshal(body, &decoded); err != nil {
+		fmt.Println("Unmarshalling error:", err)
+		return 0 
+	}
+	
+
+	if decoded["downloadSpeed"] ==nil {
+		fmt.Println("no downloadspeed")
+		return 0;
+	}
+
+	downloadSpeed := decoded["downloadSpeed"].(int64) 
+	if downloadSpeed <=0 {
+		fmt.Println("download speed error", decoded["downloadSpeed"])
+	}
+	return downloadSpeed
 }
 
 func (t *Torrent) String() string {
