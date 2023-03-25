@@ -18,6 +18,7 @@ import (
 
 const (
 	downloadReqAddress = "http://127.0.0.1:1337/download"
+	// TODO: hard coded for now but change to tracker addr later(?)
 )
 
 // The Torrent's infohash. This is fixed and cannot change. It uniquely identifies a torrent.
@@ -249,6 +250,7 @@ func (t *Torrent) AddPeers(pp []PeerInfo) (n int) {
 // Marks the entire torrent for download. Requires the info first, see
 // GotInfo. Sets piece priorities for historical reasons.
 func (t *Torrent) DownloadAll() {
+	// TODO: update pinging
 	t.DoHttpSend(Count{0})
 	ticker := time.NewTicker(1 *time.Second)
 	done := make (chan bool)
@@ -308,7 +310,6 @@ func (t *Torrent) DoHttpSend(numBytesRead Count) int64 {
 		fmt.Println("Body read error:", err)
 	}
 
-	resp.Body.Close()
 	fmt.Println(string(body))
 
 	if len(body) == 0 {
