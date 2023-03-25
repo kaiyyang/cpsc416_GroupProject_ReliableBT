@@ -331,7 +331,6 @@ func (t *Torrent) DoHttpSend(numBytesRead Count) int64 {
 	if downloadSpeed <=0 {
 		fmt.Println("download speed error", decoded["downloadSpeed"])
 	}
-	resp.Body.Close()
 	return downloadSpeed
 }
 
