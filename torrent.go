@@ -166,6 +166,9 @@ type Torrent struct {
 	// Large allocations reused between request state updates.
 	requestPieceStates []request_strategy.PieceRequestOrderState
 	requestIndexes     []RequestIndex
+
+	// Reliable Testing: TODO remove
+	SmallIntervalAllowed bool
 }
 
 func (t *Torrent) length() int64 {

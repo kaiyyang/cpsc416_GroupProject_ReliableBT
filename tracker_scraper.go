@@ -225,7 +225,7 @@ func (me *trackerScraper) Run() {
 	recalculate:
 		// Make sure we don't announce for at least a minute since the last one.
 		interval := ar.Interval
-		if interval < time.Minute {
+		if interval < time.Minute && !me.t.SmallIntervalAllowed {
 			interval = time.Minute
 		}
 
