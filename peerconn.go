@@ -14,6 +14,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jlaffaye/ftp"
+
 	"github.com/RoaringBitmap/roaring"
 	"github.com/anacrolix/chansync"
 	. "github.com/anacrolix/generics"
@@ -22,6 +24,7 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/torrent/internal/alloclim"
+	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -29,7 +32,6 @@ import (
 	"github.com/anacrolix/torrent/mse"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	request_strategy "github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/typed-roaring"
 )
 
 type PeerSource string
@@ -157,6 +159,11 @@ type PeerConn struct {
 	// The actual Conn, used for closing, and setting socket options. Do not use methods on this
 	// while holding any mutexes.
 	conn net.Conn
+
+	// the base line provider exists in parallel to the peer connection
+	// nil indicate the no connection to the base line provider.
+	ftpconn *ftp.ServerConn
+
 	// The Reader and Writer for this Conn, with hooks installed for stats,
 	// limiting, deadlines etc.
 	w io.Writer
@@ -457,6 +464,10 @@ func (cn *PeerConn) onClose() {
 	}
 	if cb := cn.callbacks.PeerConnClosed; cb != nil {
 		cb(cn)
+	}
+
+	if cn.ftpconn != nil {
+		cn.ftpconn.Quit()
 	}
 }
 

@@ -35,6 +35,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/dustin/go-humanize"
 	gbtree "github.com/google/btree"
+	"github.com/jlaffaye/ftp"
 	"github.com/pion/datachannel"
 	"golang.org/x/time/rate"
 
@@ -1692,4 +1693,21 @@ func (cl *Client) String() string {
 // TorrentStats.ConnStats.
 func (cl *Client) ConnStats() ConnStats {
 	return cl.stats.Copy()
+}
+
+// login to the FTP server and return the server connection
+func (cl *Client) DialFTP() (*ftp.ServerConn, error) {
+	// TODO: FTP server hold locally for now
+	address := "localhost:" + strconv.Itoa(cl.config.DefaultFTPport)
+	conn, err := ftp.Dial(address, ftp.DialWithTimeout(5*time.Second))
+	if err != nil {
+		cl.logger.Println(err)
+	}
+
+	err = conn.Login("test", "test")
+	if err != nil {
+		cl.logger.Println(err)
+	}
+
+	return conn, err
 }
