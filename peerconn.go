@@ -160,6 +160,7 @@ type PeerConn struct {
 	// while holding any mutexes.
 	conn net.Conn
 
+	// TODO: implement the logic that translate the ftpconn to the conn used for normal peer communication.
 	// the base line provider exists in parallel to the peer connection
 	// nil indicate the no connection to the base line provider.
 	ftpconn *ftp.ServerConn
