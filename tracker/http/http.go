@@ -51,6 +51,10 @@ func setAnnounceParams(_url *url.URL, ar *AnnounceRequest, opts AnnounceOpt) {
 	// According to https://wiki.vuze.com/w/Message_Stream_Encryption. TODO:
 	// Take EncryptionPolicy or something like it as a parameter.
 	q.Set("supportcrypto", "1")
+	// ReliableBT: announce as a baseline provider or not
+	if ar.BaselineProvider {
+		q.Set("baselineProvider", "1")
+	}
 	doIp := func(versionKey string, ip net.IP) {
 		if ip == nil {
 			return
@@ -146,12 +150,20 @@ func (cl Client) Announce(ctx context.Context, ar AnnounceRequest, opt AnnounceO
 			Port: na.Port,
 		})
 	}
+
+	// ReliableBT: although baselineProvider is a list to accomodate bencoding,
+	// If there is a non-empty list, it will contain exactly 1 element
+	if len(trackerResponse.BaselineProvider.List) != 0 {
+		baselineProvider := trackerResponse.BaselineProvider.List[0]
+		ret.BaselineProvider = baselineProvider
+	}
 	return
 }
 
 type AnnounceResponse struct {
-	Interval int32 // Minimum seconds the local peer should wait before next announce.
-	Leechers int32
-	Seeders  int32
-	Peers    []Peer
+	Interval         int32 // Minimum seconds the local peer should wait before next announce.
+	Leechers         int32
+	Seeders          int32
+	Peers            []Peer
+	BaselineProvider Peer
 }
