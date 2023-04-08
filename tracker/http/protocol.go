@@ -17,6 +17,9 @@ type HttpResponse struct {
 	Peers         Peers  `bencode:"peers"`
 	// BEP 7
 	Peers6 krpc.CompactIPv6NodeAddrs `bencode:"peers6"`
+	// ReliableBT : bencode doesn't seem to like other types, so Peers would have to do
+	// a non-empty baselineProvider list will always have exactly 1 baselineProvider for use
+	BaselineProvider Peers `bencode:"baselineProvider"`
 }
 
 type Peers struct {

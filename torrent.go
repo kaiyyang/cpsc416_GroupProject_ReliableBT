@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"math/rand"
+	"net"
 	"net/netip"
 	"net/url"
 	"sort"
@@ -167,7 +168,11 @@ type Torrent struct {
 	requestPieceStates []request_strategy.PieceRequestOrderState
 	requestIndexes     []RequestIndex
 
-	// Reliable Testing: TODO remove
+	// ReliableBT
+	// The baseline provider information obtained from the tracker. If not available, its IP is nil.
+	BaselineProvider tracker.Peer
+
+	// Whether smaller announce interval than 1 minute is allowed, for validation convenience
 	SmallIntervalAllowed bool
 }
 
@@ -1747,6 +1752,8 @@ func (t *Torrent) announceRequest(event tracker.AnnounceEvent) tracker.AnnounceR
 		Uploaded: t.stats.BytesWrittenData.Int64(),
 		// There's no mention of wasted or unwanted download in the BEP.
 		Downloaded: t.stats.BytesReadUsefulData.Int64(),
+		// ReliableBT: announce as the baseline provider.
+		BaselineProvider: t.cl.config.Reliable,
 	}
 }
 
@@ -2570,4 +2577,19 @@ func (t *Torrent) checkValidReceiveChunk(r Request) error {
 	// should be considerable checks elsewhere for this case due to the network overhead. We should
 	// catch most of the overflow manipulation stuff by checking index and begin above.
 	return nil
+}
+
+// ReliableBT
+// baseline provider
+
+// Adds baseline provider if none is available (or ignore otherwise).
+func (t *Torrent) addBaselineProvider(baselineProvider tracker.Peer) {
+	if t.BaselineProvider.IP == nil {
+		t.BaselineProvider = baselineProvider
+	}
+}
+
+// Returns the baseline provider stored within this torrent instance.
+func (t *Torrent) GetBaselineProvider() (net.IP, int) {
+	return t.BaselineProvider.IP, t.BaselineProvider.Port
 }

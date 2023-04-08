@@ -16,12 +16,13 @@ type AnnounceRequest struct {
 	Uploaded   int64
 	// Apparently this is optional. None can be used for announces done at
 	// regular intervals.
-	Event     AnnounceEvent
-	IPAddress uint32
-	Key       int32
-	NumWant   int32 // How many peer addresses are desired. -1 for default.
-	Port      uint16
-} // 82 bytes
+	Event            AnnounceEvent
+	IPAddress        uint32
+	Key              int32
+	NumWant          int32 // How many peer addresses are desired. -1 for default.
+	Port             uint16
+	BaselineProvider bool // ReliableBT: whether to announce ourselves as a baseline provider
+}
 
 type AnnounceEvent int32
 

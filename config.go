@@ -180,6 +180,9 @@ type ClientConfig struct {
 	DisableWebseeds   bool
 
 	Callbacks Callbacks
+
+	// ReliableBT: whether it can be a baseline provider
+	Reliable bool
 }
 
 func (cfg *ClientConfig) SetListenAddr(addr string) *ClientConfig {
@@ -223,6 +226,8 @@ func NewDefaultClientConfig() *ClientConfig {
 		Extensions:            defaultPeerExtensionBytes(),
 		AcceptPeerConnections: true,
 		MaxUnverifiedBytes:    64 << 20,
+		// ReliableBT
+		Reliable: false,
 	}
 	cc.DhtStartingNodes = func(network string) dht.StartingNodesGetter {
 		return func() ([]dht.Addr, error) { return dht.GlobalBootstrapAddrs(network) }
