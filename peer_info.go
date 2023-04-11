@@ -16,6 +16,8 @@ type PeerInfo struct {
 	peer_protocol.PexPeerFlags
 	// Whether we can ignore poor or bad behaviour from the peer.
 	Trusted bool
+	// ReliableBT: whether this is a baseline provider, which maximizes its priority.
+	BaselineProvider bool
 }
 
 func (me PeerInfo) equal(other PeerInfo) bool {

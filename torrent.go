@@ -2583,10 +2583,12 @@ func (t *Torrent) checkValidReceiveChunk(r Request) error {
 // baseline provider
 
 // Adds baseline provider if none is available (or ignore otherwise).
-func (t *Torrent) addBaselineProvider(baselineProvider tracker.Peer) {
+func (t *Torrent) addBaselineProvider(baselineProvider tracker.Peer) bool {
 	if t.BaselineProvider.IP == nil {
 		t.BaselineProvider = baselineProvider
+		return true
 	}
+	return false
 }
 
 // Returns the baseline provider stored within this torrent instance.
