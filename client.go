@@ -714,7 +714,7 @@ func (cl *Client) initiateProtocolHandshakes(
 }
 
 // Returns nil connection and nil error if no connection could be established for valid reasons.
-func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfuscatedHeader bool) (*PeerConn, error) {
+func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfuscatedHeader bool, isToBaseLineProvider bool) (*PeerConn, error) {
 	dialCtx, cancel := context.WithTimeout(context.Background(), func() time.Duration {
 		cl.rLock()
 		defer cl.rUnlock()
@@ -734,9 +734,10 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfus
 		outgoing:   true,
 		remoteAddr: addr,
 		// It would be possible to retrieve a public IP from the dialer used here?
-		localPublicAddr: cl.publicAddr(addrIpPort.IP),
-		network:         dr.Dialer.DialerNetwork(),
-		connString:      regularNetConnPeerConnConnString(nc),
+		localPublicAddr:      cl.publicAddr(addrIpPort.IP),
+		network:              dr.Dialer.DialerNetwork(),
+		connString:           regularNetConnPeerConnConnString(nc),
+		isToBaseLineProvider: isToBaseLineProvider,
 	})
 	if err != nil {
 		nc.Close()
@@ -746,10 +747,10 @@ func (cl *Client) establishOutgoingConnEx(t *Torrent, addr PeerRemoteAddr, obfus
 
 // Returns nil connection and nil error if no connection could be established
 // for valid reasons.
-func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr) (c *PeerConn, err error) {
+func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr, isToBaseLineProvider bool) (c *PeerConn, err error) {
 	torrent.Add("establish outgoing connection", 1)
 	obfuscatedHeaderFirst := cl.config.HeaderObfuscationPolicy.Preferred
-	c, err = cl.establishOutgoingConnEx(t, addr, obfuscatedHeaderFirst)
+	c, err = cl.establishOutgoingConnEx(t, addr, obfuscatedHeaderFirst, isToBaseLineProvider)
 	if err == nil {
 		torrent.Add("initiated conn with preferred header obfuscation", 1)
 		return
@@ -761,7 +762,7 @@ func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr) (c *Pee
 		return
 	}
 	// Try again with encryption if we didn't earlier, or without if we did.
-	c, err = cl.establishOutgoingConnEx(t, addr, !obfuscatedHeaderFirst)
+	c, err = cl.establishOutgoingConnEx(t, addr, !obfuscatedHeaderFirst, isToBaseLineProvider)
 	if err == nil {
 		torrent.Add("initiated conn with fallback header obfuscation", 1)
 	}
@@ -771,9 +772,10 @@ func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr) (c *Pee
 
 // Called to dial out and run a connection. The addr we're given is already
 // considered half-open.
-func (cl *Client) outgoingConnection(t *Torrent, addr PeerRemoteAddr, ps PeerSource, trusted bool) {
+func (cl *Client) outgoingConnection(t *Torrent, addr PeerRemoteAddr, ps PeerSource, trusted bool, isToBaseLinePrivider bool) {
 	cl.dialRateLimiter.Wait(context.Background())
-	c, err := cl.establishOutgoingConn(t, addr)
+
+	c, err := cl.establishOutgoingConn(t, addr, isToBaseLinePrivider)
 	if err == nil {
 		c.conn.SetWriteDeadline(time.Time{})
 	}
@@ -1221,6 +1223,7 @@ func (cl *Client) newTorrentOpt(opts AddTorrentOpts) (t *Torrent) {
 	if opts.ChunkSize == 0 {
 		opts.ChunkSize = defaultChunkSize
 	}
+	// for the baseline provider we want to make the defaultChunkSize bigger
 	t.setChunkSize(opts.ChunkSize)
 	return
 }
@@ -1484,11 +1487,12 @@ func (cl *Client) banPeerIP(ip net.IP) {
 }
 
 type newConnectionOpts struct {
-	outgoing        bool
-	remoteAddr      PeerRemoteAddr
-	localPublicAddr peerLocalPublicAddr
-	network         string
-	connString      string
+	outgoing             bool
+	remoteAddr           PeerRemoteAddr
+	localPublicAddr      peerLocalPublicAddr
+	network              string
+	connString           string
+	isToBaseLineProvider bool
 }
 
 func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerConn) {
@@ -1502,10 +1506,11 @@ func (cl *Client) newConnection(nc net.Conn, opts newConnectionOpts) (c *PeerCon
 			peerChoking:     true,
 			PeerMaxRequests: 250,
 
-			RemoteAddr:      opts.remoteAddr,
-			localPublicAddr: opts.localPublicAddr,
-			Network:         opts.network,
-			callbacks:       &cl.config.Callbacks,
+			RemoteAddr:         opts.remoteAddr,
+			localPublicAddr:    opts.localPublicAddr,
+			Network:            opts.network,
+			callbacks:          &cl.config.Callbacks,
+			IsBaselineProvider: opts.isToBaseLineProvider,
 		},
 		connString: opts.connString,
 		conn:       nc,

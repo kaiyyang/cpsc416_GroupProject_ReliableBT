@@ -13,8 +13,8 @@ import (
 	"github.com/anacrolix/multiless"
 	"github.com/lispad/go-generics-tools/binheap"
 
-	"github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/typed-roaring"
+	request_strategy "github.com/anacrolix/torrent/request-strategy"
+	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 )
 
 func (t *Torrent) requestStrategyPieceOrderState(i int) request_strategy.PieceRequestOrderState {
@@ -82,6 +82,7 @@ func (p *desiredPeerRequests) Less(i, j int) bool {
 	return p.lessByValue(p.requestIndexes[i], p.requestIndexes[j])
 }
 
+// Kaiyuan: compare function to build the the requestHeap that request with priority
 func (p *desiredPeerRequests) lessByValue(leftRequest, rightRequest RequestIndex) bool {
 	t := p.peer.t
 	leftPieceIndex := t.pieceIndexOfRequestIndex(leftRequest)
@@ -191,11 +192,13 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 		return
 	}
 	input := t.getRequestStrategyInput()
+	// add a field indicating if its talking in chunks or pieces the request is generated
 	requestHeap := desiredPeerRequests{
 		peer:           p,
 		pieceStates:    t.requestPieceStates,
 		requestIndexes: t.requestIndexes,
 	}
+	fmt.Println("requestHeap before running strategy: ", requestHeap)
 	// Caller-provided allocation for roaring bitmap iteration.
 	var it typedRoaring.Iterator[RequestIndex]
 	request_strategy.GetRequestablePieces(
@@ -208,7 +211,15 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 			if !p.peerHasPiece(pieceIndex) {
 				return
 			}
+
+			fmt.Println("pieceIndex before assign: ", requestHeap.pieceStates[pieceIndex])
 			requestHeap.pieceStates[pieceIndex] = pieceExtra
+
+			if p.IsBaselineProvider && t.requestPieceStates[pieceIndex].Availability != 1 {
+				return
+			}
+
+			fmt.Println("pieceIndex after assign: ", requestHeap.pieceStates[pieceIndex])
 			allowedFast := p.peerAllowedFast.Contains(pieceIndex)
 			t.iterUndirtiedRequestIndexesInPiece(&it, pieceIndex, func(r request_strategy.RequestIndex) {
 				if !allowedFast {
@@ -235,6 +246,7 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 	)
 	t.assertPendingRequests()
 	desired.Requests = requestHeap
+	fmt.Println("requestHeap after running strategy: ", requestHeap)
 	return
 }
 
@@ -263,11 +275,17 @@ func (p *Peer) maybeUpdateActualRequestState() {
 }
 
 // Transmit/action the request state to the peer.
+// peer here is the seeder that provide the file
 func (p *Peer) applyRequestState(next desiredRequestState) {
 	current := &p.requestState
 	if !p.setInterested(next.Interested) {
 		panic("insufficient write buffer")
 	}
+	// p is the next.Requests.peer
+	fmt.Println("next peer : ", next.Requests.peer)
+	fmt.Println("next RequestIndex : ", next.Requests.requestIndexes)
+	fmt.Println("next pieceStates : ", next.Requests.pieceStates)
+
 	more := true
 	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
 	t := p.t
@@ -281,6 +299,7 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	}
 	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
 		req := requestHeap.Pop()
+		fmt.Println("requesting: get from requestheap: ", req)
 		existing := t.requestingPeer(req)
 		if existing != nil && existing != p {
 			// Don't steal from the poor.
