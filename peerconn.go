@@ -22,7 +22,6 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/torrent/internal/alloclim"
-	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -30,6 +29,7 @@ import (
 	"github.com/anacrolix/torrent/mse"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	request_strategy "github.com/anacrolix/torrent/request-strategy"
+	"github.com/anacrolix/torrent/typed-roaring"
 )
 
 type PeerSource string
@@ -133,8 +133,6 @@ type Peer struct {
 	PeerExtensionIDs map[pp.ExtensionName]pp.ExtensionNumber
 	PeerClientName   atomic.Value
 
-	IsBaselineProvider bool
-
 	logger log.Logger
 }
 
@@ -169,12 +167,7 @@ type PeerConn struct {
 	uploadTimer *time.Timer
 	pex         pexConnState
 
-	// the bool to indicate the current connection is to a baseline provider
-	//
-	isBaselineProvider bool
-
 	// The pieces the peer has claimed to have.
-	// Kaiyuan: Look into how to grab the peer pieces
 	_peerPieces roaring.Bitmap
 	// The peer has everything. This can occur due to a special message, when
 	// we may not even know the number of pieces in the torrent yet.
@@ -656,9 +649,7 @@ func (cn *Peer) mustRequest(r RequestIndex) bool {
 	return more
 }
 
-// request a particular piece or chunk of a torrent file from a peer.
 func (cn *Peer) request(r RequestIndex) (more bool, err error) {
-	fmt.Println("request", r)
 	if err := cn.shouldRequest(r); err != nil {
 		panic(err)
 	}
@@ -1312,7 +1303,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 				err = fmt.Errorf("on reading request %v: %w", r, err)
 			}
 		case pp.Piece:
-			fmt.Println(len(msg.Piece))
 			c.doChunkReadStats(int64(len(msg.Piece)))
 			err = c.receiveChunk(&msg)
 			if len(msg.Piece) == int(t.chunkSize) {

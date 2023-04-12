@@ -472,8 +472,6 @@ func (t *Torrent) pieceRequestOrderKey(i int) request_strategy.PieceRequestOrder
 // This seems to be all the follow-up tasks after info is set, that can't fail.
 func (t *Torrent) onSetInfo() {
 	t.pieceRequestOrder = rand.Perm(t.numPieces())
-	fmt.Println("piece request order: ", t.pieceRequestOrder)
-
 	t.initPieceRequestOrder()
 	MakeSliceWithLength(&t.requestPieceStates, t.numPieces())
 	for i := range t.pieces {
@@ -2285,14 +2283,9 @@ func (t *Torrent) initiateConn(peer PeerInfo) {
 	if t.addrActive(addr.String()) {
 		return
 	}
-
 	t.cl.numHalfOpen++
 	t.halfOpen[addr.String()] = peer
-	// code for if peer.BaselineProvider is null set it to false
-	if !peer.BaselineProvider {
-		peer.BaselineProvider = false
-	}
-	go t.cl.outgoingConnection(t, addr, peer.Source, peer.Trusted, peer.BaselineProvider)
+	go t.cl.outgoingConnection(t, addr, peer.Source, peer.Trusted)
 }
 
 // Adds a trusted, pending peer for each of the given Client's addresses. Typically used in tests to
