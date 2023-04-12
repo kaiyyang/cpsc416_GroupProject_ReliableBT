@@ -176,12 +176,18 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 		ret.Err = fmt.Errorf("announcing: %w", err)
 		return
 	}
-	me.t.AddPeers(peerInfos(nil).AppendFromTracker(res.Peers))
+	// If a baseline provider is successfully added, store it as a special peer
+	peerInfos := peerInfos(nil).AppendFromTracker(res.Peers)
 	ret.NumPeers = len(res.Peers)
-	ret.Interval = time.Duration(res.Interval) * time.Second
-	if res.BaselineProvider.IP != nil {
-		me.t.addBaselineProvider(res.BaselineProvider)
+	if res.BaselineProvider.IP != nil && me.t.addBaselineProvider(res.BaselineProvider) {
+		peerInfos = peerInfos.AppendFromTracker([]tracker.Peer{res.BaselineProvider})
+		peerInfos[len(peerInfos)-1].Trusted = true
+		peerInfos[len(peerInfos)-1].BaselineProvider = true
+		ret.NumPeers++
 	}
+	me.t.AddPeers(peerInfos)
+
+	ret.Interval = time.Duration(res.Interval) * time.Second
 	return
 }
 

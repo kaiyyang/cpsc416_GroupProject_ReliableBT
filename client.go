@@ -1194,6 +1194,10 @@ func (cl *Client) newTorrentOpt(opts AddTorrentOpts) (t *Torrent) {
 		peers: prioritizedPeers{
 			om: gbtree.New(32),
 			getPrio: func(p PeerInfo) peerPriority {
+				// Baseline provider gets the highest possible priority (to prevent being popped)
+				if p.BaselineProvider {
+					return math.MaxUint32
+				}
 				ipPort := p.addr()
 				return bep40PriorityIgnoreError(cl.publicAddr(ipPort.IP), ipPort)
 			},
