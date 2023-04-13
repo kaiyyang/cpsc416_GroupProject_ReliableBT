@@ -652,7 +652,6 @@ func (cn *Peer) mustRequest(r RequestIndex) bool {
 
 // request a particular piece or chunk of a torrent file from a peer.
 func (cn *Peer) request(r RequestIndex) (more bool, err error) {
-	fmt.Println("request", r)
 	if err := cn.shouldRequest(r); err != nil {
 		panic(err)
 	}
@@ -1306,7 +1305,6 @@ func (c *PeerConn) mainReadLoop() (err error) {
 				err = fmt.Errorf("on reading request %v: %w", r, err)
 			}
 		case pp.Piece:
-			fmt.Println(len(msg.Piece))
 			c.doChunkReadStats(int64(len(msg.Piece)))
 			err = c.receiveChunk(&msg)
 			if len(msg.Piece) == int(t.chunkSize) {

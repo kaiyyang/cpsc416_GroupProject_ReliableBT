@@ -198,7 +198,6 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 		pieceStates:    t.requestPieceStates,
 		requestIndexes: t.requestIndexes,
 	}
-	// fmt.Println("requestHeap before running strategy: ", requestHeap)
 	// Caller-provided allocation for roaring bitmap iteration.
 	var it typedRoaring.Iterator[RequestIndex]
 	request_strategy.GetRequestablePieces(
@@ -212,10 +211,7 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 				return
 			}
 
-			// fmt.Println("pieceIndex before assign: ", requestHeap.pieceStates[pieceIndex])
 			requestHeap.pieceStates[pieceIndex] = pieceExtra
-
-			// fmt.Println("pieceIndex after assign: ", requestHeap.pieceStates[pieceIndex])
 			allowedFast := p.peerAllowedFast.Contains(pieceIndex)
 			t.iterUndirtiedRequestIndexesInPiece(&it, pieceIndex, func(r request_strategy.RequestIndex) {
 				if !allowedFast {
@@ -237,7 +233,9 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 					return
 				}
 
-				if p.isBaselineProvider() && t.requestPieceStates[pieceIndex].Availability != 1 {
+				// In our Baseline provider model, we assume baseline provider would have all the pieces and always available.
+				// Therefore, BP would only handle the cases where piece Availability is 1, that is only itself have the piece.
+				if p.isBaselineProvider() && pieceExtra.Availability != 1 {
 					// fmt.Println("get resource from baseline provider:", p)
 					return
 				}
@@ -282,10 +280,6 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	if !p.setInterested(next.Interested) {
 		panic("insufficient write buffer")
 	}
-	// p is the next.Requests.peer
-	// fmt.Println("next peer : ", next.Requests.peer)
-	// fmt.Println("next RequestIndex : ", next.Requests.requestIndexes)
-	// fmt.Println("next pieceStates : ", next.Requests.pieceStates)
 
 	more := true
 	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
@@ -300,7 +294,6 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	}
 	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
 		req := requestHeap.Pop()
-		// fmt.Println("requesting: get from requestheap: ", req)
 		existing := t.requestingPeer(req)
 		if existing != nil && existing != p {
 			// Don't steal from the poor.
