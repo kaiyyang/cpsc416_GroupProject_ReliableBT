@@ -649,7 +649,6 @@ func (cn *Peer) mustRequest(r RequestIndex) bool {
 	return more
 }
 
-// request a particular piece or chunk of a torrent file from a peer.
 func (cn *Peer) request(r RequestIndex) (more bool, err error) {
 	if err := cn.shouldRequest(r); err != nil {
 		panic(err)

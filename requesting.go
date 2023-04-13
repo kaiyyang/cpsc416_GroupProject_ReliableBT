@@ -208,7 +208,6 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 			if !p.peerHasPiece(pieceIndex) {
 				return
 			}
-
 			requestHeap.pieceStates[pieceIndex] = pieceExtra
 			allowedFast := p.peerAllowedFast.Contains(pieceIndex)
 			t.iterUndirtiedRequestIndexesInPiece(&it, pieceIndex, func(r request_strategy.RequestIndex) {
@@ -271,13 +270,11 @@ func (p *Peer) maybeUpdateActualRequestState() {
 }
 
 // Transmit/action the request state to the peer.
-// peer here is the seeder that provide the file
 func (p *Peer) applyRequestState(next desiredRequestState) {
 	current := &p.requestState
 	if !p.setInterested(next.Interested) {
 		panic("insufficient write buffer")
 	}
-
 	more := true
 	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
 	t := p.t
