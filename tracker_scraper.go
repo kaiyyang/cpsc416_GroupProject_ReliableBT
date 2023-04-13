@@ -184,6 +184,11 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 		peerInfos[len(peerInfos)-1].Trusted = true
 		peerInfos[len(peerInfos)-1].BaselineProvider = true
 		ret.NumPeers++
+
+		// In case that baseline provider (when incomplete) initiates a connection with the peer
+		// This peer might have incorrectly recorded it as a regular peer with default priority.
+		// So Delete the baseline provider here to reinsert with highest priority.
+		me.t.peers.DeleteBaseLineProvider(peerInfos[len(peerInfos)-1])
 	}
 
 	me.t.AddPeers(peerInfos)
