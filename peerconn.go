@@ -168,7 +168,6 @@ type PeerConn struct {
 	pex         pexConnState
 
 	// The pieces the peer has claimed to have.
-	// Kaiyuan: Look into how to grab the peer pieces
 	_peerPieces roaring.Bitmap
 	// The peer has everything. This can occur due to a special message, when
 	// we may not even know the number of pieces in the torrent yet.

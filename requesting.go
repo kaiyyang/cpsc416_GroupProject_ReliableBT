@@ -82,7 +82,6 @@ func (p *desiredPeerRequests) Less(i, j int) bool {
 	return p.lessByValue(p.requestIndexes[i], p.requestIndexes[j])
 }
 
-// Kaiyuan: compare function to build the the requestHeap that request with priority
 func (p *desiredPeerRequests) lessByValue(leftRequest, rightRequest RequestIndex) bool {
 	t := p.peer.t
 	leftPieceIndex := t.pieceIndexOfRequestIndex(leftRequest)
@@ -192,7 +191,6 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 		return
 	}
 	input := t.getRequestStrategyInput()
-	// add a field indicating if its talking in chunks or pieces the request is generated
 	requestHeap := desiredPeerRequests{
 		peer:           p,
 		pieceStates:    t.requestPieceStates,
@@ -236,7 +234,6 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 				// In our Baseline provider model, we assume baseline provider would have all the pieces and always available.
 				// Therefore, BP would only handle the cases where piece Availability is 1, that is only itself have the piece.
 				if p.isBaselineProvider() && pieceExtra.Availability > 1 {
-					// fmt.Println("get resource from baseline provider:", p)
 					return
 				}
 

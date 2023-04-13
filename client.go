@@ -773,7 +773,6 @@ func (cl *Client) establishOutgoingConn(t *Torrent, addr PeerRemoteAddr) (c *Pee
 // considered half-open.
 func (cl *Client) outgoingConnection(t *Torrent, addr PeerRemoteAddr, ps PeerSource, trusted bool) {
 	cl.dialRateLimiter.Wait(context.Background())
-
 	c, err := cl.establishOutgoingConn(t, addr)
 	if err == nil {
 		c.conn.SetWriteDeadline(time.Time{})
@@ -1222,7 +1221,6 @@ func (cl *Client) newTorrentOpt(opts AddTorrentOpts) (t *Torrent) {
 	if opts.ChunkSize == 0 {
 		opts.ChunkSize = defaultChunkSize
 	}
-	// for the baseline provider we want to make the defaultChunkSize bigger
 	t.setChunkSize(opts.ChunkSize)
 	return
 }
