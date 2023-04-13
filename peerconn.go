@@ -22,6 +22,7 @@ import (
 	"github.com/anacrolix/missinggo/v2/bitmap"
 	"github.com/anacrolix/multiless"
 	"github.com/anacrolix/torrent/internal/alloclim"
+	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 	"golang.org/x/time/rate"
 
 	"github.com/anacrolix/torrent/bencode"
@@ -29,7 +30,6 @@ import (
 	"github.com/anacrolix/torrent/mse"
 	pp "github.com/anacrolix/torrent/peer_protocol"
 	request_strategy "github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/typed-roaring"
 )
 
 type PeerSource string
@@ -1895,4 +1895,15 @@ func (p *Peer) uncancelledRequests() uint64 {
 
 func (pc *PeerConn) remoteIsTransmission() bool {
 	return bytes.HasPrefix(pc.PeerID[:], []byte("-TR")) && pc.PeerID[7] == '-'
+}
+
+func (p *Peer) isBaselineProvider() bool {
+	if p.t.BaselineProvider.IP == nil || p.remoteIp() == nil {
+		return false
+	}
+
+	isIpMatch := p.remoteIp().Equal(p.t.BaselineProvider.IP)
+	isPortMatch := p.remoteIpPort().Port == uint16(p.t.BaselineProvider.Port)
+
+	return isIpMatch && isPortMatch
 }

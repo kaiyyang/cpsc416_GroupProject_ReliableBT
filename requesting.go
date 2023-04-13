@@ -13,8 +13,8 @@ import (
 	"github.com/anacrolix/multiless"
 	"github.com/lispad/go-generics-tools/binheap"
 
-	"github.com/anacrolix/torrent/request-strategy"
-	"github.com/anacrolix/torrent/typed-roaring"
+	request_strategy "github.com/anacrolix/torrent/request-strategy"
+	typedRoaring "github.com/anacrolix/torrent/typed-roaring"
 )
 
 func (t *Torrent) requestStrategyPieceOrderState(i int) request_strategy.PieceRequestOrderState {
@@ -229,6 +229,13 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 					// Can't re-request while awaiting acknowledgement.
 					return
 				}
+
+				// In our Baseline provider model, we assume baseline provider would have all the pieces and always available.
+				// Therefore, BP would only handle the cases where piece Availability is 1, that is only itself have the piece.
+				if p.isBaselineProvider() && pieceExtra.Availability > 1 {
+					return
+				}
+
 				requestHeap.requestIndexes = append(requestHeap.requestIndexes, r)
 			})
 		},

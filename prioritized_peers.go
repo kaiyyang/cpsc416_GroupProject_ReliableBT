@@ -80,3 +80,7 @@ func (me *prioritizedPeers) DeleteMin() (ret prioritizedPeersItem, ok bool) {
 func (me *prioritizedPeers) PopMax() PeerInfo {
 	return me.om.DeleteMax().(prioritizedPeersItem).p
 }
+
+func (me *prioritizedPeers) DeleteBaseLineProvider(bp PeerInfo) {
+	me.om.Delete(prioritizedPeersItem{me.getPrio(bp), bp})
+}
