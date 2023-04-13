@@ -1322,6 +1322,12 @@ func (t *Torrent) maxHalfOpen() int {
 }
 
 func (t *Torrent) openNewConns() (initiated int) {
+	// ReliableBT
+	// For reliable service provider that have the complete resources, disallow initiating outgoing connections.
+	// Note: there are negative implications if this logic is placed in wantConns or wantPeers.
+	if t.isCompleteReliable() {
+		return
+	}
 	defer t.updateWantPeersEvent()
 	for t.peers.Len() != 0 {
 		if !t.wantConns() {
@@ -1971,6 +1977,10 @@ func (t *Torrent) wantConns() bool {
 		return false
 	}
 	return len(t.conns) < t.maxEstablishedConns || t.worstBadConn() != nil
+}
+
+func (t *Torrent) isCompleteReliable() bool {
+	return t.haveAllPieces() && t.cl.config.Reliable
 }
 
 func (t *Torrent) SetMaxEstablishedConns(max int) (oldMax int) {
