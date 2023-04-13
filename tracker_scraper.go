@@ -180,11 +180,13 @@ func (me *trackerScraper) announce(ctx context.Context, event tracker.AnnounceEv
 	peerInfos := peerInfos(nil).AppendFromTracker(res.Peers)
 	ret.NumPeers = len(res.Peers)
 	if res.BaselineProvider.IP != nil && me.t.addBaselineProvider(res.BaselineProvider) {
+		fmt.Printf("adding baseline provider to Peer Infos")
 		peerInfos = peerInfos.AppendFromTracker([]tracker.Peer{res.BaselineProvider})
 		peerInfos[len(peerInfos)-1].Trusted = true
 		peerInfos[len(peerInfos)-1].BaselineProvider = true
 		ret.NumPeers++
 	}
+
 	me.t.AddPeers(peerInfos)
 
 	ret.Interval = time.Duration(res.Interval) * time.Second

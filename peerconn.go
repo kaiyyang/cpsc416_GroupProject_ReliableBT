@@ -133,8 +133,6 @@ type Peer struct {
 	PeerExtensionIDs map[pp.ExtensionName]pp.ExtensionNumber
 	PeerClientName   atomic.Value
 
-	IsBaselineProvider bool
-
 	logger log.Logger
 }
 
@@ -168,10 +166,6 @@ type PeerConn struct {
 
 	uploadTimer *time.Timer
 	pex         pexConnState
-
-	// the bool to indicate the current connection is to a baseline provider
-	//
-	isBaselineProvider bool
 
 	// The pieces the peer has claimed to have.
 	// Kaiyuan: Look into how to grab the peer pieces
@@ -1905,4 +1899,15 @@ func (p *Peer) uncancelledRequests() uint64 {
 
 func (pc *PeerConn) remoteIsTransmission() bool {
 	return bytes.HasPrefix(pc.PeerID[:], []byte("-TR")) && pc.PeerID[7] == '-'
+}
+
+func (p *Peer) isBaselineProvider() bool {
+	if p.t.BaselineProvider.IP == nil || p.remoteIp() == nil {
+		return false
+	}
+
+	isIpMatch := p.remoteIp().Equal(p.t.BaselineProvider.IP)
+	isPortMatch := p.remoteIpPort().Port == uint16(p.t.BaselineProvider.Port)
+
+	return isIpMatch && isPortMatch
 }

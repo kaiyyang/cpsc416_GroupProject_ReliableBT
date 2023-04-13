@@ -198,7 +198,7 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 		pieceStates:    t.requestPieceStates,
 		requestIndexes: t.requestIndexes,
 	}
-	fmt.Println("requestHeap before running strategy: ", requestHeap)
+	// fmt.Println("requestHeap before running strategy: ", requestHeap)
 	// Caller-provided allocation for roaring bitmap iteration.
 	var it typedRoaring.Iterator[RequestIndex]
 	request_strategy.GetRequestablePieces(
@@ -212,14 +212,10 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 				return
 			}
 
-			fmt.Println("pieceIndex before assign: ", requestHeap.pieceStates[pieceIndex])
+			// fmt.Println("pieceIndex before assign: ", requestHeap.pieceStates[pieceIndex])
 			requestHeap.pieceStates[pieceIndex] = pieceExtra
 
-			if p.IsBaselineProvider && t.requestPieceStates[pieceIndex].Availability != 1 {
-				return
-			}
-
-			fmt.Println("pieceIndex after assign: ", requestHeap.pieceStates[pieceIndex])
+			// fmt.Println("pieceIndex after assign: ", requestHeap.pieceStates[pieceIndex])
 			allowedFast := p.peerAllowedFast.Contains(pieceIndex)
 			t.iterUndirtiedRequestIndexesInPiece(&it, pieceIndex, func(r request_strategy.RequestIndex) {
 				if !allowedFast {
@@ -240,13 +236,18 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 					// Can't re-request while awaiting acknowledgement.
 					return
 				}
+
+				if p.isBaselineProvider() && t.requestPieceStates[pieceIndex].Availability != 1 {
+					// fmt.Println("get resource from baseline provider:", p)
+					return
+				}
+
 				requestHeap.requestIndexes = append(requestHeap.requestIndexes, r)
 			})
 		},
 	)
 	t.assertPendingRequests()
 	desired.Requests = requestHeap
-	fmt.Println("requestHeap after running strategy: ", requestHeap)
 	return
 }
 
@@ -282,9 +283,9 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 		panic("insufficient write buffer")
 	}
 	// p is the next.Requests.peer
-	fmt.Println("next peer : ", next.Requests.peer)
-	fmt.Println("next RequestIndex : ", next.Requests.requestIndexes)
-	fmt.Println("next pieceStates : ", next.Requests.pieceStates)
+	// fmt.Println("next peer : ", next.Requests.peer)
+	// fmt.Println("next RequestIndex : ", next.Requests.requestIndexes)
+	// fmt.Println("next pieceStates : ", next.Requests.pieceStates)
 
 	more := true
 	requestHeap := binheap.FromSlice(next.Requests.requestIndexes, next.Requests.lessByValue)
@@ -299,7 +300,7 @@ func (p *Peer) applyRequestState(next desiredRequestState) {
 	}
 	for requestHeap.Len() != 0 && maxRequests(current.Requests.GetCardinality()+current.Cancelled.GetCardinality()) < p.nominalMaxRequests() {
 		req := requestHeap.Pop()
-		fmt.Println("requesting: get from requestheap: ", req)
+		// fmt.Println("requesting: get from requestheap: ", req)
 		existing := t.requestingPeer(req)
 		if existing != nil && existing != p {
 			// Don't steal from the poor.
