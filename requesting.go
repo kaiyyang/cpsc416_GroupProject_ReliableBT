@@ -235,7 +235,7 @@ func (p *Peer) getDesiredRequestState() (desired desiredRequestState) {
 
 				// In our Baseline provider model, we assume baseline provider would have all the pieces and always available.
 				// Therefore, BP would only handle the cases where piece Availability is 1, that is only itself have the piece.
-				if p.isBaselineProvider() && pieceExtra.Availability != 1 {
+				if p.isBaselineProvider() && pieceExtra.Availability > 1 {
 					// fmt.Println("get resource from baseline provider:", p)
 					return
 				}
