@@ -271,3 +271,11 @@ func (t *Torrent) PeerConns() []*PeerConn {
 	}
 	return ret
 }
+
+func (t *Torrent) UploadedBytes() int64 {
+	return t.stats.BytesWrittenData.Int64()
+}
+
+func (t *Torrent) DownloadedBytes() int64 {
+	return t.stats.BytesReadUsefulData.Int64()
+}
